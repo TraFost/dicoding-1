@@ -40,8 +40,27 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json,bin}'],
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
-        navigateFallback: '/',
+        navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              url.hostname === 'huggingface.co' ||
+              url.hostname === 'cdn.jsdelivr.net' ||
+              url.hostname.endsWith('.hf.co'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'transformers-models',
+              expiration: {
+                maxEntries: 32,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
     }),
   ],
