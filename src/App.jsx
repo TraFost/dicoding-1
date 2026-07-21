@@ -7,6 +7,7 @@ import { CameraService } from './services/CameraService';
 import { DetectionService } from './services/DetectionService';
 import { RootFactsService } from './services/RootFactsService';
 import { APP_CONFIG } from './utils/config';
+import { createDelay } from './utils/common';
 
 function App() {
   const { state, actions } = useAppState();
@@ -96,11 +97,15 @@ function App() {
       if (result && result.isValid) {
         const latestLabel = result.className;
 
-        stopCameraAfterDetection();
-
         actions.setDetectionResult({ className: latestLabel, score: result.score });
         actions.setFunFactData(null);
+
+        // Brief pause so the vegetable is clearly visible before the camera stops.
+        await createDelay(APP_CONFIG.analyzingDelay);
+        stopCameraAfterDetection();
+
         actions.setAppState('result');
+        await createDelay(APP_CONFIG.factsGenerationDelay);
 
         const fact = await generator.generateFacts(latestLabel);
 
