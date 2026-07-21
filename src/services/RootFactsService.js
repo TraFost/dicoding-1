@@ -9,27 +9,10 @@ const GENERATION_CONFIG = {
   do_sample: true,
 };
 
-const TONE_INSTRUCTIONS = {
-  normal: 'Write one interesting, accurate fun fact about this vegetable.',
-  funny: 'Write one funny, light-hearted fun fact about this vegetable. Keep it humorous but still about the vegetable.',
-  professional: 'Write one professional, scientific fact about this vegetable.',
-  casual: 'Write one cool, casual fun fact about this vegetable.',
-};
-
 function buildPrompt(vegetableName, tone) {
-  const instruction = TONE_INSTRUCTIONS[tone] || TONE_INSTRUCTIONS.normal;
+  const toneLabel = tone || TONE_CONFIG.defaultTone;
 
-  return [
-    'You are a vegetable facts assistant.',
-    `Detected vegetable label from computer vision: "${vegetableName}".`,
-    `The classified object is the vegetable named ${vegetableName}.`,
-    instruction,
-    `Rules: The fact must be about ${vegetableName} only.`,
-    `Mention ${vegetableName} clearly in the sentence.`,
-    'Do not invent eras, rocks, stories, or unrelated topics.',
-    'Reply with exactly one short sentence and nothing else.',
-    `Fun fact about ${vegetableName}:`,
-  ].join(' ');
+  return `Describe vegetable ${vegetableName} in ${toneLabel} way with one sentences. Focus on its health benefits or unique characteristics.`;
 }
 
 function normalizeFact(text, vegetableName) {
@@ -41,12 +24,6 @@ function normalizeFact(text, vegetableName) {
     .trim();
 
   if (!fact) return null;
-
-  const cue = `Fun fact about ${vegetableName}:`;
-  const cueIndex = fact.toLowerCase().indexOf(cue.toLowerCase());
-  if (cueIndex !== -1) {
-    fact = fact.slice(cueIndex + cue.length).trim();
-  }
 
   const sentenceMatch = fact.match(/^[^.!?]+[.!?]?/);
   if (sentenceMatch) {
