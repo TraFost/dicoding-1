@@ -17,6 +17,7 @@ function App() {
   const factsServiceRef = useRef(null);
   const lastDetectionTimeRef = useRef(0);
   const initDoneRef = useRef(false);
+  const detectionInFlightRef = useRef(false);
 
   useEffect(() => {
     if (initDoneRef.current) return;
@@ -63,6 +64,14 @@ function App() {
     };
   }, []);
 
+  const stopCameraAfterDetection = useCallback(() => {
+    const camera = cameraServiceRef.current;
+    if (camera?.isActive()) {
+      camera.stopCamera();
+    }
+    actions.setRunning(false);
+  }, []);
+
   const runDetection = useCallback(async () => {
     const camera = cameraServiceRef.current;
     const detector = detectionServiceRef.current;
@@ -70,11 +79,14 @@ function App() {
 
     if (!camera || !detector || !generator) return;
     if (!camera.isActive() || !camera.isReady()) return;
+    if (detectionInFlightRef.current) return;
 
     const now = Date.now();
     const fpsInterval = 1000 / (camera.currentFPS || 30);
     if (now - lastDetectionTimeRef.current < fpsInterval) return;
     lastDetectionTimeRef.current = now;
+
+    detectionInFlightRef.current = true;
 
     try {
       actions.setAppState('analyzing');
@@ -82,8 +94,13 @@ function App() {
       const result = await detector.predict(camera.video);
 
       if (result && result.isValid) {
+        // Stop webcam ASAP so the next frame doesn't restart inference
+        // and reset the generative fun-fact request mid-flight.
+        stopCameraAfterDetection();
+
         actions.setDetectionResult({ className: result.className, score: result.score });
         actions.setFunFactData(null);
+        actions.setAppState('result');
 
         const fact = await generator.generateFacts(result.className);
 
@@ -92,13 +109,13 @@ function App() {
         } else {
           actions.setFunFactData('error');
         }
-
-        actions.setAppState('result');
       }
     } catch (err) {
       actions.setError(err.message);
+    } finally {
+      detectionInFlightRef.current = false;
     }
-  }, []);
+  }, [stopCameraAfterDetection]);
 
   useEffect(() => {
     if (state.isRunning && detectionServiceRef.current?.isLoaded()) {
@@ -120,12 +137,14 @@ function App() {
 
     if (state.isRunning) {
       camera.stopCamera();
+      detectionInFlightRef.current = false;
       actions.setRunning(false);
       actions.resetResults();
       return;
     }
 
     try {
+      actions.resetResults();
       await camera.startCamera();
       actions.setRunning(true);
       actions.setError(null);
