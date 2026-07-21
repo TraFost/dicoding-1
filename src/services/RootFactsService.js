@@ -19,7 +19,7 @@ export class RootFactsService {
   }
 
   async loadModel() {
-    const modelId = 'Xenova/LaMini-Flan-T5-783M';
+    const modelId = 'Xenova/LaMini-Flan-T5-77M';
 
     this.generator = await pipeline('text2text-generation', modelId, {
       device: 'wasm',
