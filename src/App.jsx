@@ -94,15 +94,15 @@ function App() {
       const result = await detector.predict(camera.video);
 
       if (result && result.isValid) {
-        // Stop webcam ASAP so the next frame doesn't restart inference
-        // and reset the generative fun-fact request mid-flight.
+        const latestLabel = result.className;
+
         stopCameraAfterDetection();
 
-        actions.setDetectionResult({ className: result.className, score: result.score });
+        actions.setDetectionResult({ className: latestLabel, score: result.score });
         actions.setFunFactData(null);
         actions.setAppState('result');
 
-        const fact = await generator.generateFacts(result.className);
+        const fact = await generator.generateFacts(latestLabel);
 
         if (fact) {
           actions.setFunFactData(fact);
